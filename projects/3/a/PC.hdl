@@ -14,5 +14,18 @@ CHIP PC {
     OUT out[16];
     
     PARTS:
-    //// Replace this comment with your code.
+    // First we want to set up load or increment
+    Or(a=load, b=inc, out=loadOrIncrement);
+    // Now make loadOrIncrementOrReset
+    Or(a=loadOrIncrement, b=reset, out=loadOrIncrementOrReset);
+    // Now let's Mux in either the incremented output from last time or the input based on inc, this selector needs to also only do if inc is 1 and load is 0
+    Not(in=load, out=notLoad);
+    And(a=inc, b=notLoad, out=incAndNotLoad);
+    Mux16(a=in, b=incOut, sel=incAndNotLoad, out=inMuxIncOut);
+    // We want to put the logic for reset in here
+    Mux16(a=inMuxIncOut, b=false, sel=reset, out=iMioMuxFalse);
+    // Now we can set up a register
+    Register(in=iMioMuxFalse, load=loadOrIncrementOrReset, out=toIncrement, out=out);
+    // Then we want to increment incOut
+    Inc16(in=toIncrement, out=incOut);
 }
