@@ -8,9 +8,8 @@
 // The algorithm is based on repetitive addition.
 
 // TODO Challenges:
-// Reset R2 to 0 at the beginning of the program
 // Make it more efficient by looping the fewer number of times
-// What if one of the values is 0?
+// Pass in a function bit, and do add / subtract / multiply / divide (calculator)
 
 // Reset R2
 @R2
