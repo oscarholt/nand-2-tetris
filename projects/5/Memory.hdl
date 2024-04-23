@@ -25,5 +25,27 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-	//// Replace this comment with your code.
+    // 0 - 16383 = 000000000000000 - 011111111111111
+    // 16384 - 24575 = 100000000000000 - 101111111111111
+    // 24576 = 110000000000000
+    // We can use a condition if the first bit is 1, split between RAM and I/O
+    // Then if the second bit is also 1, we can split between screen and keyboard
+    // First Bit = address[15]
+    // Second Bit = address[14]
+    // Set up load variables
+    Not(in=address[14], out=notFirst);
+    And(a=load, b=notFirst, out=loadRam);
+    And(a=load, b=address[14], out=loadScreen);
+    // RAM 16k 
+    RAM16K(in=in, load=loadRam, address=address[0..13], out=ramOut);
+    // Screen
+    Screen(in=in, load=loadScreen, address=address[0..12], out=screenOut);
+    // Keyboard
+    Keyboard(out=keyboardOut);
+    // Set up selection of final output
+    Mux16(a=ramOut, b=screenOut, sel=address[14], out=ramMuxScreen);
+    // Set up AND for keyboardOut
+    And(a=address[14], b=address[13], out=isKeyboard);
+    // Mux together ramMuxScreen and keyboardOut
+    Mux16(a=ramMuxScreen, b=keyboardOut, sel=isKeyboard, out=out);
 }
