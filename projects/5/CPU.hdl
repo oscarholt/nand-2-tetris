@@ -32,5 +32,44 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	//// Replace this comment with your code.
+    // Take the intruction and split it into control bits if the instruction is of type C
+    Mux16(a=false, b=instruction, sel=instruction[15], out[12]=a, out[11]=zxc, out[10]=nxc, out[9]=zyc, out[8]=nyc, out[7]=fc, out[6]=noc, out[5]=loadA, out[4]=loadD, out[3]=writeM, out[2]=jmp1, out[1]=jmp2, out[0]=jmp3);
+
+    // Mux between ALU output and instruction coming in for ARegister
+    Mux16(a=instruction, b=aluOut, sel=instruction[15], out=insMuxAlu);
+
+    // Or together loadA with op code to load in both cases
+    Not(in=instruction[15], out=opA);
+    Or(a=loadA, b=opA, out=loadOrOp);
+
+    // Load the 16-bit instruction into the A register
+    ARegister(in=insMuxAlu, load=loadOrOp, out=aRegOut, out[0..14]=addressM);
+
+    // Mux the A Register with inM in order to select between A / M for computations
+    Mux16(a=aRegOut, b=inM, sel=a, out=aMuxIn);
+
+    // Load the output of the ALU into the D register
+    DRegister(in=aluOut, load=loadD, out=dRegOut);
+
+    // Load the ALU with the control bits
+    ALU(x=dRegOut, y=aMuxIn, zx=zxc, nx=nxc, zy=zyc, ny=nyc, f=fc, no=noc, out=aluOut, out=outM, zr=aluZr, ng=aluNg);
+
+    // Desired logic:
+    // If j1 AND ALU out is negative, load = 1 
+    And(a=jmp1, b=aluNg, out=j1);
+    // If j2 AND ALU out is zero, load = 1
+    And(a=jmp2, b=aluZr, out=j2);
+    // If j3 AND ALU out is not zero or negative, load = 1
+    Or(a=aluZr, b=aluNg, out=zrOrNg);
+    Not(in=zrOrNg, out=zrNorNg);
+    And(a=jmp3, b=zrNorNg, out=j3);
+    Or(a=j1, b=j2, out=j1OrJ2);
+    Or(a=j1OrJ2, b=j3, out=pcLoad);
+
+    // Create inc which is just not pcLoad
+    Not(in=pcLoad, out=notPcLoad);
+
+    // Set up program counter
+    PC(in=aRegOut, load=pcLoad, inc=notPcLoad, reset=reset, out[0..14]=pc);
+
 }
